@@ -1,0 +1,23 @@
+.{
+    .name = .zig_prometheus_exporter_example,
+    .version = "0.0.0",
+    .fingerprint = 0x53a33754662f2216,
+    .minimum_zig_version = "0.14.0",
+    .dependencies = .{
+        .metrics = .{
+            .url = "git+https://github.com/karlseguin/metrics.zig#2b584b6209871b7215706028988169599451dc0d",
+            .hash = "metrics-0.0.0-W7G4eCG0AQCQXidzvV5kx4l0smr_WCw-8JLIwS_OHYoW",
+        },
+        .zap = .{
+            .url = "git+https://github.com/zigzap/zap.git#8078b96d3f2bd3517e7e12d7609db45b15c20c02",
+            .hash = "zap-0.9.1-GoeB8zBOJAAFXit6idaxejwAtPn9iYgCXwzybs1zxUgc",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENSE",
+        "README.md",
+    },
+}
