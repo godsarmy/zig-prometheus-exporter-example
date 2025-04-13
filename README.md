@@ -15,9 +15,10 @@ to implement simple [prometheus http exporter server](https://prometheus.io/docs
 | [http.zig](src/httpz_main.zig) | Example implemented by [http.zig](https://github.com/karlseguin/zig-http) |
 
 ## Usage
-### Install [zig >= 0.14](https://ziglang.org/download/)
+### Preparation
+   Install [zig >= 0.14](https://ziglang.org/download/)
 
-### Build Only.
+### Build examples
    ```sh
    zig build
    ```
