@@ -1,6 +1,7 @@
 const std = @import("std");
-const zap = @import("zap");
+// 3rd modules
 const m = @import("metrics");
+const zap = @import("zap");
 
 const Allocator = std.mem.Allocator;
 

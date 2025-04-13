@@ -16,6 +16,12 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const httpz_main_mod = b.createModule(.{
+        .root_source_file = b.path("src/httpz_main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     const std_exe = b.addExecutable(.{
         .name = "std_example",
         .root_module = std_main_mod,
@@ -25,11 +31,23 @@ pub fn build(b: *std.Build) void {
         .name = "zap_example",
         .root_module = zap_main_mod,
     });
+
+    const httpz_exe = b.addExecutable(.{
+        .name = "httpz_example",
+        .root_module = httpz_main_mod,
+    });
+
     const zap_dep = b.dependency("zap", .{
         .target = target,
         .optimize = optimize,
     });
     zap_exe.root_module.addImport("zap", zap_dep.module("zap"));
+
+    const httpz_dep = b.dependency("httpz", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    httpz_exe.root_module.addImport("httpz", httpz_dep.module("httpz"));
 
     const metrics_dep = b.dependency("metrics", .{
         .target = target,
@@ -38,9 +56,11 @@ pub fn build(b: *std.Build) void {
 
     std_exe.root_module.addImport("metrics", metrics_dep.module("metrics"));
     zap_exe.root_module.addImport("metrics", metrics_dep.module("metrics"));
- 
+    httpz_exe.root_module.addImport("metrics", metrics_dep.module("metrics"));
+
     b.installArtifact(std_exe);
     b.installArtifact(zap_exe);
+    b.installArtifact(httpz_exe);
 
     const run_cmd = b.addRunArtifact(std_exe);
     run_cmd.step.dependOn(b.getInstallStep());

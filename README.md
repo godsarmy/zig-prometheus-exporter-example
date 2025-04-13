@@ -12,6 +12,7 @@ to implement simple [prometheus http exporter server](https://prometheus.io/docs
 |-------------------------|-------------|
 | [std](src/std_main.zig) | Example implemented by [std.http.Server](https://ziglang.org/documentation/master/std/#std.http.Server) |
 | [zap](src/zap_main.zig) | Example implemented by [zap lib](https://github.com/zap-zig/zap) |
+| [http.zig](src/httpz_main.zig) | Example implemented by [http.zig](https://github.com/karlseguin/zig-http) |
 
 ## Usage
  * Install [zig >= 0.14](https://ziglang.org/download/)
