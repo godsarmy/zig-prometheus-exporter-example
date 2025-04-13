@@ -15,13 +15,13 @@ to implement simple [prometheus http exporter server](https://prometheus.io/docs
 | [http.zig](src/httpz_main.zig) | Example implemented by [http.zig](https://github.com/karlseguin/zig-http) |
 
 ## Usage
- * Install [zig >= 0.14](https://ziglang.org/download/)
+### Install [zig >= 0.14](https://ziglang.org/download/)
 
- * Build Only.
+### Build Only.
    ```sh
    zig build
    ```
- * Run examples
+### Run examples
    Use `zig build run-xxx` command. See help of `zig build`.
    Access `http://localhost:3000/metrics`.
    ```sh
