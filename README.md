@@ -18,6 +18,20 @@ to implement simple [prometheus http exporter server](https://prometheus.io/docs
  * Install [zig >= 0.14](https://ziglang.org/download/)
 
  * Build Only.
-```sh
-zig build
-```
+   ```sh
+   zig build
+   ```
+ * Run examples
+   Use `zig build run-xxx` command. See help of `zig build`.
+   Access `http://localhost:3000/metrics`.
+   ```sh
+   Usage: zig build [steps] [options]
+
+   Steps:
+     install (default)            Copy build artifacts to prefix path
+     uninstall                    Remove build artifacts from prefix path
+     run-std                      Run std.http app
+     run-zap                      Run zap apps
+     run-httpz                    Run httpz apps
+     test                         Run unit tests
+   ```

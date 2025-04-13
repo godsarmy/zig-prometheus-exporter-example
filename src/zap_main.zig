@@ -39,8 +39,6 @@ pub const WebPackage = struct {
 };
 
 fn not_found(req: zap.Request) !void {
-    std.debug.print("not found handler", .{});
-
     try req.sendBody("Not found");
 }
 
@@ -64,9 +62,8 @@ pub fn main() !void {
         .on_request = simpleRouter.on_request_handler(),
         .log = true,
     });
+    std.debug.print("[zap] Listening on 0.0.0.0:3000\n", .{});
     try listener.listen();
-
-    std.debug.print("Listening on 0.0.0.0:3000\n", .{});
 
     // start worker threads
     zap.start(.{

@@ -51,6 +51,7 @@ pub const MetricsHandler = struct {
 pub fn main() !void {
     const address = try std.net.Address.parseIp4("127.0.0.1", 3000);
 
+    std.debug.print("[std.http] Listening on 0.0.0.0:3000\n", .{});
     var server = try address.listen(std.net.Address.ListenOptions{});
     defer server.deinit();
 

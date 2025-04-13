@@ -35,6 +35,7 @@ pub fn main() !void {
     router.get("/metrics", getMetrics, .{});
 
     // blocks
+    std.debug.print("[http.zig] Listening on 0.0.0.0:3000\n", .{});
     try server.listen();
 }
 
@@ -50,4 +51,16 @@ fn getMetrics(app: *App, _: *httpz.Request, res: *httpz.Response) !void {
     // res.body = std.fmt.allocPrint(res.arena, arr.items, .{});
     res.body = arr.items;
     return res.write();
+}
+
+test "simple test" {
+    var app = App{
+        .allocator = std.testing.allocator,
+        .metrics = .{
+            .hits = m.Counter(u32).init("hits", .{}, .{}),
+        },
+    };
+    try std.testing.expectEqual(app.metrics.hits.impl.count, 0);
+    app.metrics.hits.incr();
+    try std.testing.expectEqual(app.metrics.hits.impl.count, 1);
 }
