@@ -3,9 +3,15 @@ const std = @import("std");
 const httpz = @import("httpz");
 const m = @import("metrics");
 
+const HitLabel = struct { client: []const u8 };
 const Metrics = struct {
+    const Hits = m.CounterVec(u64, HitLabel);
+    const Accessed = m.Gauge(u64);
+
     // counter to calculate how many hit to URL
-    hits: m.Counter(u32),
+    hits: Hits,
+    // gauge for latest accessed timestamp in epoch
+    accessed: Accessed,
 };
 
 const App = struct {
@@ -20,9 +26,11 @@ pub fn main() !void {
     var app = App{
         .allocator = allocator,
         .metrics = .{
-            .hits = m.Counter(u32).init("hits", .{}, .{}),
+            .hits = try Metrics.Hits.init(allocator, "hits", .{}, .{}),
+            .accessed = Metrics.Accessed.init("accessed", .{}, .{}),
         },
     };
+    defer app.metrics.hits.deinit();
 
     var server = try httpz.Server(*App).init(allocator, .{ .port = 3000 }, &app);
     defer {
@@ -39,8 +47,13 @@ pub fn main() !void {
     try server.listen();
 }
 
-fn getMetrics(app: *App, _: *httpz.Request, res: *httpz.Response) !void {
-    app.metrics.hits.incr();
+fn getMetrics(app: *App, req: *httpz.Request, res: *httpz.Response) !void {
+    const client = try std.fmt.allocPrint(app.allocator, "{any}", .{req.address});
+    defer app.allocator.free(client);
+
+    const labels: HitLabel = .{ .client = client };
+    try app.metrics.hits.incr(labels);
+    app.metrics.accessed.set(@intCast(std.time.milliTimestamp()));
     res.status = 200;
 
     var arr = std.ArrayList(u8).init(app.allocator);
@@ -54,13 +67,22 @@ fn getMetrics(app: *App, _: *httpz.Request, res: *httpz.Response) !void {
 }
 
 test "simple test" {
+    const test_allocator = std.testing.allocator;
     var app = App{
-        .allocator = std.testing.allocator,
+        .allocator = test_allocator,
         .metrics = .{
-            .hits = m.Counter(u32).init("hits", .{}, .{}),
+            .hits = try Metrics.Hits.init(test_allocator, "hits", .{}, .{}),
+            .accessed = Metrics.Accessed.init("accessed", .{}, .{}),
         },
     };
-    try std.testing.expectEqual(app.metrics.hits.impl.count, 0);
-    app.metrics.hits.incr();
-    try std.testing.expectEqual(app.metrics.hits.impl.count, 1);
+    defer app.metrics.hits.deinit();
+
+    try std.testing.expectEqual(app.metrics.accessed.impl.value, 0);
+
+    const labels: HitLabel = .{ .client = "foo" };
+    try app.metrics.hits.incr(labels);
+    app.metrics.accessed.set(100);
+
+    try std.testing.expectEqual(app.metrics.hits.impl.values.get(labels).?.count, 1);
+    try std.testing.expectEqual(app.metrics.accessed.impl.value, 100);
 }

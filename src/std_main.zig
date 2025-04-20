@@ -2,22 +2,28 @@ const std = @import("std");
 // 3rd modules
 const m = @import("metrics");
 
-const Allocator = std.mem.Allocator;
+const HitLabel = struct { client: []const u8 };
 const Metrics = struct {
+    const Hits = m.CounterVec(u64, HitLabel);
+    const Accessed = m.Gauge(u64);
+
     // counter to calculate how many hit to URL
-    hits: m.Counter(u32),
+    hits: Hits,
+    // gauge for latest accessed timestamp in epoch
+    accessed: Accessed,
 };
 
 pub const MetricsHandler = struct {
-    allocator: Allocator,
+    allocator: std.mem.Allocator,
     metrics: Metrics,
 
-    pub fn init(allocator: Allocator) MetricsHandler {
+    pub fn init(allocator: std.mem.Allocator) MetricsHandler {
         // initialize Metrics object as self.metrics
         return .{
             .allocator = allocator,
             .metrics = .{
-                .hits = m.Counter(u32).init("hits", .{}, .{}),
+                .hits = try Metrics.Hits.init(allocator, "hits", .{}, .{}),
+                .accessed = Metrics.Accessed.init("accessed", .{}, .{}),
             },
         };
     }
@@ -33,7 +39,12 @@ pub const MetricsHandler = struct {
 
         if (std.mem.startsWith(u8, url, "/metrics")) {
             // increase counter first when URL is hit
-            self.metrics.hits.incr();
+            const client = try std.fmt.allocPrint(self.allocator, "{any}", .{conn.address});
+            defer self.allocator.free(client);
+
+            const labels: HitLabel = .{ .client = client };
+            try self.metrics.hits.incr(labels);
+            self.metrics.accessed.set(@intCast(std.time.milliTimestamp()));
 
             // buffer for output
             var arr = std.ArrayList(u8).init(self.allocator);
@@ -60,6 +71,8 @@ pub fn main() !void {
     defer _ = gpa.deinit();
 
     var metricsHandler = MetricsHandler.init(allocator);
+    defer metricsHandler.metrics.hits.deinit();
+
     while (true) {
         try metricsHandler.handleConnection(try server.accept());
     }
@@ -67,7 +80,14 @@ pub fn main() !void {
 
 test "simple test" {
     var metricsHandler = MetricsHandler.init(std.testing.allocator);
-    try std.testing.expectEqual(metricsHandler.metrics.hits.impl.count, 0);
-    metricsHandler.metrics.hits.incr();
-    try std.testing.expectEqual(metricsHandler.metrics.hits.impl.count, 1);
+    defer metricsHandler.metrics.hits.deinit();
+
+    try std.testing.expectEqual(metricsHandler.metrics.accessed.impl.value, 0);
+
+    const labels: HitLabel = .{ .client = "foo" };
+    try metricsHandler.metrics.hits.incr(labels);
+    metricsHandler.metrics.accessed.set(100);
+
+    try std.testing.expectEqual(metricsHandler.metrics.hits.impl.values.get(labels).?.count, 1);
+    try std.testing.expectEqual(metricsHandler.metrics.accessed.impl.value, 100);
 }

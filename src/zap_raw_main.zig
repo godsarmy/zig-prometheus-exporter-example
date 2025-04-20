@@ -70,7 +70,7 @@ pub fn main() !void {
 }
 
 test "simple test" {
-    var app = MetricsApp.init(std.testing.allocator);
+    app = MetricsApp.init(std.testing.allocator);
     try std.testing.expectEqual(app.metrics.hits.impl.count, 0);
     app.metrics.hits.incr();
     try std.testing.expectEqual(app.metrics.hits.impl.count, 1);
