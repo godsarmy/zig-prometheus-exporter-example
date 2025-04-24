@@ -113,7 +113,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const zap_raw_exe_unit_tests = b.addTest(.{
-        .root_module = zap_router_main_mod,
+        .root_module = zap_raw_main_mod,
     });
 
     const zap_router_exe_unit_tests = b.addTest(.{

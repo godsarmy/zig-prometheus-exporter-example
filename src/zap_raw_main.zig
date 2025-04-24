@@ -3,10 +3,22 @@ const std = @import("std");
 const m = @import("metrics");
 const zap = @import("zap");
 
+const HitLabel = struct { client: []const u8 };
 const Metrics = struct {
+    const Hits = m.CounterVec(u64, HitLabel);
+    const Accessed = m.Gauge(u64);
+
     // counter to calculate how many hit to URL
-    hits: m.Counter(u32),
+    hits: Hits,
+    // gauge for latest accessed timestamp in epoch
+    accessed: Accessed,
 };
+
+pub fn info2addr(info_s: zap.fio.fio_str_info_s) []const u8 {
+    if (info_s.data == 0)
+        return "";
+    return info_s.data[0..info_s.len];
+}
 
 pub const MetricsApp = struct {
     allocator: std.mem.Allocator,
@@ -17,13 +29,23 @@ pub const MetricsApp = struct {
         return .{
             .allocator = allocator,
             .metrics = .{
-                .hits = m.Counter(u32).init("hits", .{}, .{}),
+                .hits = try Metrics.Hits.init(allocator, "hits", .{}, .{}),
+                .accessed = Metrics.Accessed.init("accessed", .{}, .{}),
             },
         };
     }
 
     fn metrics_handler(self: *MetricsApp, r: zap.Request) !void {
-        self.metrics.hits.incr();
+        const addr_info_s = zap.fio.http_peer_addr(r.h);
+        const addr = info2addr(addr_info_s);
+        std.debug.print("addr: {s}\n", .{addr});
+
+        const client = try std.fmt.allocPrint(self.allocator, "{s}", .{addr});
+        defer self.allocator.free(client);
+
+        const labels: HitLabel = .{ .client = client };
+        try self.metrics.hits.incr(labels);
+        self.metrics.accessed.set(@intCast(std.time.milliTimestamp()));
 
         // buffer for output
         var arr = std.ArrayList(u8).init(self.allocator);
@@ -53,6 +75,7 @@ pub fn main() !void {
     }){};
     const allocator = gpa.allocator();
     app = MetricsApp.init(allocator);
+    defer app.metrics.hits.deinit();
 
     var listener = zap.HttpListener.init(.{
         .port = 3000,
@@ -71,7 +94,14 @@ pub fn main() !void {
 
 test "simple test" {
     app = MetricsApp.init(std.testing.allocator);
-    try std.testing.expectEqual(app.metrics.hits.impl.count, 0);
-    app.metrics.hits.incr();
-    try std.testing.expectEqual(app.metrics.hits.impl.count, 1);
+    defer app.metrics.hits.deinit();
+
+    try std.testing.expectEqual(app.metrics.accessed.impl.value, 0);
+
+    const labels: HitLabel = .{ .client = "foo" };
+    try app.metrics.hits.incr(labels);
+    app.metrics.accessed.set(100);
+
+    try std.testing.expectEqual(app.metrics.hits.impl.values.get(labels).?.count, 1);
+    try std.testing.expectEqual(app.metrics.accessed.impl.value, 100);
 }
