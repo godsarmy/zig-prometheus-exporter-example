@@ -37,11 +37,7 @@ pub const MetricsApp = struct {
 
     fn metrics_handler(self: *MetricsApp, r: zap.Request) !void {
         const addr_info_s = zap.fio.http_peer_addr(r.h);
-        const addr = info2addr(addr_info_s);
-        std.debug.print("addr: {s}\n", .{addr});
-
-        const client = try std.fmt.allocPrint(self.allocator, "{s}", .{addr});
-        defer self.allocator.free(client);
+        const client = info2addr(addr_info_s);
 
         const labels: HitLabel = .{ .client = client };
         try self.metrics.hits.incr(labels);
